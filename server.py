@@ -29,5 +29,7 @@ class CORSRequestHandler(http.server.SimpleHTTPRequestHandler):
         return super(CORSRequestHandler, self).end_headers()
 
 httpd = http.server.HTTPServer(('127.0.0.1', 443), CORSRequestHandler)
-httpd.socket = ssl.wrap_socket (httpd.socket, certfile='./dummy.pem', server_side=True)
+ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+ctx.load_cert_chain('./dummy.pem')
+httpd.socket = ctx.wrap_socket(httpd.socket, server_side=True)
 httpd.serve_forever()

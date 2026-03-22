@@ -108,6 +108,86 @@
             "contents": [
                 {
                     "kind": "BLOCK",
+                    "type": "xrp_comp_is_autonomous"
+                },
+                {
+                    "kind": "BLOCK",
+                    "type": "xrp_comp_is_enabled"
+                },
+                {
+                    "kind": "BLOCK",
+                    "type": "xrp_comp_is_disabled"
+                },
+                {
+                    "kind": "BLOCK",
+                    "type": "xrp_comp_get_mode"
+                },
+                {
+                    "kind": "BLOCK",
+                    "type": "xrp_comp_mode_const"
+                },
+                {
+                    "kind": "BLOCK",
+                    "type": "xrp_comp_init"
+                },
+                {
+                    "kind": "BLOCK",
+                    "type": "xrp_comp_set_mode"
+                },
+                {
+                    "kind": "BLOCK",
+                    "type": "xrp_comp_set_enabled"
+                },
+                {
+                    "kind": "BLOCK",
+                    "type": "xrp_comp_disable"
+                }
+            ],
+            "name": "Competition",
+            "colour": "#d68910"
+        },
+        {
+            "kind": "CATEGORY",
+            "contents": [
+                {
+                    "kind": "BLOCK",
+                    "type": "xrp_timer_create"
+                },
+                {
+                    "kind": "BLOCK",
+                    "type": "xrp_timer_reset"
+                },
+                {
+                    "kind": "BLOCK",
+                    "type": "xrp_timer_elapsed"
+                },
+                {
+                    "kind": "BLOCK",
+                    "type": "xrp_timer_elapsed_ms"
+                },
+                {
+                    "kind": "BLOCK",
+                    "type": "xrp_timer_has_elapsed",
+                    "inputs": {
+                        "SECONDS": {"shadow": {"type": "math_number", "fields": {"NUM": "1.0"}}}
+                    }
+                },
+                {
+                    "kind": "BLOCK",
+                    "type": "xrp_timer_has_elapsed_ms",
+                    "inputs": {
+                        "MILLISECONDS": {"shadow": {"type": "math_number", "fields": {"NUM": "1000"}}}
+                    }
+                }
+            ],
+            "name": "Timer",
+            "colour": "#5b80a5"
+        },
+        {
+            "kind": "CATEGORY",
+            "contents": [
+                {
+                    "kind": "BLOCK",
                     "blockxml": "<block type=\"xrp_sleep\">\n                <field name=\"TIME\">0</field>\n              </block>",
                     "type": "xrp_sleep"
                 },

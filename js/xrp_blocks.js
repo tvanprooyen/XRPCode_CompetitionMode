@@ -593,6 +593,213 @@ Blockly.Blocks['xrp_gp_button_pressed'] = {
   }
 };
 
+// Competition
+Blockly.Blocks['xrp_comp_is_autonomous'] = {
+  init: function () {
+    this.appendDummyInput()
+      .appendField("Competition is autonomous");
+    this.setOutput(true, "Boolean");
+    this.setColour(25);
+    this.setTooltip("True when Competition Mode is currently in Autonomous.");
+    this.setHelpUrl("");
+  }
+};
+
+Blockly.Blocks['xrp_comp_is_enabled'] = {
+  init: function () {
+    this.appendDummyInput()
+      .appendField("Competition is enabled");
+    this.setOutput(true, "Boolean");
+    this.setColour(25);
+    this.setTooltip("True when Competition Mode is currently enabled.");
+    this.setHelpUrl("");
+  }
+};
+
+Blockly.Blocks['xrp_comp_is_disabled'] = {
+  init: function () {
+    this.appendDummyInput()
+      .appendField("Competition is disabled");
+    this.setOutput(true, "Boolean");
+    this.setColour(25);
+    this.setTooltip("True when Competition Mode is currently disabled.");
+    this.setHelpUrl("");
+  }
+};
+
+Blockly.Blocks['xrp_comp_get_mode'] = {
+  init: function () {
+    this.appendDummyInput()
+      .appendField("Competition mode value");
+    this.setOutput(true, "Number");
+    this.setColour(25);
+    this.setTooltip("Returns COMP_MODE_TELEOP (0) or COMP_MODE_AUTONOMOUS (1).\nUseful with compare blocks.");
+    this.setHelpUrl("");
+  }
+};
+
+Blockly.Blocks['xrp_comp_mode_const'] = {
+  init: function () {
+    this.appendDummyInput()
+      .appendField("Competition constant")
+      .appendField(new Blockly.FieldDropdown([
+        ["TELEOP", "COMP_MODE_TELEOP"],
+        ["AUTONOMOUS", "COMP_MODE_AUTONOMOUS"],
+        ["DISABLED", "COMP_MODE_DISABLED"],
+        ["ENABLED", "COMP_MODE_ENABLED"]
+      ]), "MODE_CONST");
+    this.setOutput(true, "Number");
+    this.setColour(25);
+    this.setTooltip("Competition mode constants for compare blocks.");
+    this.setHelpUrl("");
+  }
+};
+
+Blockly.Blocks['xrp_comp_init'] = {
+  init: function () {
+    this.appendDummyInput()
+      .appendField("Competition init mode")
+      .appendField(new Blockly.FieldDropdown([
+        ["TELEOP", "COMP_MODE_TELEOP"],
+        ["AUTONOMOUS", "COMP_MODE_AUTONOMOUS"]
+      ]), "INIT_MODE");
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour(25);
+    this.setTooltip("Initialize competition state and listener thread.");
+    this.setHelpUrl("");
+  }
+};
+
+Blockly.Blocks['xrp_comp_set_mode'] = {
+  init: function () {
+    this.appendDummyInput()
+      .appendField("Competition set mode")
+      .appendField(new Blockly.FieldDropdown([
+        ["TELEOP", "COMP_MODE_TELEOP"],
+        ["AUTONOMOUS", "COMP_MODE_AUTONOMOUS"]
+      ]), "SET_MODE");
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour(25);
+    this.setTooltip("Set the active competition mode from code.");
+    this.setHelpUrl("");
+  }
+};
+
+Blockly.Blocks['xrp_comp_set_enabled'] = {
+  init: function () {
+    this.appendDummyInput()
+      .appendField("Competition")
+      .appendField(new Blockly.FieldDropdown([
+        ["Enable", "True"],
+        ["Disable", "False"]
+      ]), "ENABLED_STATE");
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour(25);
+    this.setTooltip("Enable or disable competition state from code.");
+    this.setHelpUrl("");
+  }
+};
+
+Blockly.Blocks['xrp_comp_disable'] = {
+  init: function () {
+    this.appendDummyInput()
+      .appendField("Competition disable");
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour(25);
+    this.setTooltip("Disable competition state from code.");
+    this.setHelpUrl("");
+  }
+};
+
+// Timer
+Blockly.Blocks['xrp_timer_create'] = {
+  init: function () {
+    this.appendDummyInput()
+      .appendField("Create timer")
+      .appendField(new Blockly.FieldTextInput("timer"), "TIMER_NAME");
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour(200);
+    this.setTooltip("Create and start a Timer instance.");
+    this.setHelpUrl("");
+  }
+};
+
+Blockly.Blocks['xrp_timer_reset'] = {
+  init: function () {
+    this.appendDummyInput()
+      .appendField("Reset timer")
+      .appendField(new Blockly.FieldTextInput("timer"), "TIMER_NAME");
+    this.setPreviousStatement(true, null);
+    this.setNextStatement(true, null);
+    this.setColour(200);
+    this.setTooltip("Reset an existing Timer.");
+    this.setHelpUrl("");
+  }
+};
+
+Blockly.Blocks['xrp_timer_elapsed'] = {
+  init: function () {
+    this.appendDummyInput()
+      .appendField("Timer")
+      .appendField(new Blockly.FieldTextInput("timer"), "TIMER_NAME")
+      .appendField("elapsed seconds");
+    this.setOutput(true, "Number");
+    this.setColour(200);
+    this.setTooltip("Get elapsed seconds from timer.");
+    this.setHelpUrl("");
+  }
+};
+
+Blockly.Blocks['xrp_timer_elapsed_ms'] = {
+  init: function () {
+    this.appendDummyInput()
+      .appendField("Timer")
+      .appendField(new Blockly.FieldTextInput("timer"), "TIMER_NAME")
+      .appendField("elapsed ms");
+    this.setOutput(true, "Number");
+    this.setColour(200);
+    this.setTooltip("Get elapsed milliseconds from timer.");
+    this.setHelpUrl("");
+  }
+};
+
+Blockly.Blocks['xrp_timer_has_elapsed'] = {
+  init: function () {
+    this.appendDummyInput()
+      .appendField("Timer")
+      .appendField(new Blockly.FieldTextInput("timer"), "TIMER_NAME")
+      .appendField("has elapsed seconds");
+    this.appendValueInput("SECONDS")
+      .setCheck("Number");
+    this.setInputsInline(true);
+    this.setOutput(true, "Boolean");
+    this.setColour(200);
+    this.setTooltip("True when timer has elapsed the given number of seconds.");
+    this.setHelpUrl("");
+  }
+};
+
+Blockly.Blocks['xrp_timer_has_elapsed_ms'] = {
+  init: function () {
+    this.appendDummyInput()
+      .appendField("Timer")
+      .appendField(new Blockly.FieldTextInput("timer"), "TIMER_NAME")
+      .appendField("has elapsed ms");
+    this.appendValueInput("MILLISECONDS")
+      .setCheck("Number");
+    this.setInputsInline(true);
+    this.setOutput(true, "Boolean");
+    this.setColour(200);
+    this.setTooltip("True when timer has elapsed the given milliseconds.");
+    this.setHelpUrl("");
+  }
+};
+
 
 // Logic
 Blockly.Blocks['xrp_sleep'] = {

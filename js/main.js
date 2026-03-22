@@ -2,7 +2,6 @@ import { GoldenLayout, LayoutConfig } from "../golden-layout/bundle/esm/golden-l
 import { configNonBeta } from './nonbetaConfig.js';
 
 
-
 /*
          VERSION NUMBERS
 */
@@ -616,6 +615,29 @@ async function downloadFileFromPath(fullFilePaths) {
 
 // init Joystick class when window initializes
 var JOY = undefined;
+let gamepadGlowIntervalId = null;
+
+function updateHeaderGamepadGlow() {
+    const gamepadIconEl = document.getElementById("IDGamePad");
+    if (!gamepadIconEl || !JOY || typeof JOY.updateStatus !== "function" || !JOY.joysticksArray) {
+        if (gamepadIconEl) gamepadIconEl.classList.remove("gamepad-pressed");
+        return;
+    }
+
+    JOY.updateStatus();
+    const values = JOY.joysticksArray;
+    const anyButtonPressed = values.length >= 18 && values.slice(4, 18).some(v => Number(v) > 0.5);
+    gamepadIconEl.classList.toggle("gamepad-pressed", anyButtonPressed);
+}
+
+function startHeaderGamepadGlowMonitor() {
+    if (gamepadGlowIntervalId !== null) {
+        return;
+    }
+    updateHeaderGamepadGlow();
+    gamepadGlowIntervalId = setInterval(updateHeaderGamepadGlow, 80);
+}
+
 function registerJoy(_container, state){
     JOY = new Joystick(_container, state);
     JOY.writeToDevice = async (data) => { //REPL.writeToDevice(data);
@@ -629,6 +651,7 @@ function registerJoy(_container, state){
     };
     REPL.startJoyPackets = () => JOY.startJoyPackets();
     REPL.stopJoyPackets = () => JOY.stopJoyPackets();
+    startHeaderGamepadGlowMonitor();
 }
 
 // Terminal module
@@ -650,6 +673,7 @@ function registerShell(_container, state){
         ATERM.writeln("Waiting for connection... (click 'Connect XRP')");
         FS.clearToWaiting();
         window.disableMenuItems();
+        compSetXrpConnected(false);
 
         // when XRP is disconnected, show the CONNECT XRP button and hide the RUN button
         document.getElementById('IDRunBTN').style.display = "none";
@@ -668,8 +692,11 @@ function registerShell(_container, state){
     }
     REPL.onConnect = () => {
         window.enableMenuItems();
+        compSetXrpConnected(true);
         // when XRP is connected, show the RUN button and hide the CONNECT XRP button
-        document.getElementById("IDRunBTN").disabled = false;
+        // keep Run button disabled if competition mode is currently open
+        const compIsOpen = document.getElementById("IDCompetitionModal").style.display !== 'none';
+        document.getElementById("IDRunBTN").disabled = compIsOpen;
         document.getElementById('IDRunBTN').style.display = "block";
         document.getElementById('IDConnectBTN').style.display = "none";
        
@@ -775,7 +802,7 @@ function registerShell(_container, state){
         var message = "The MicroPython on your XRP needs to be updated. The new version is " + window.latestMicroPythonVersion[0] + "." + window.latestMicroPythonVersion[1] + "." + window.latestMicroPythonVersion[2] + " " + window.latestMicroPythonVersionPlus;
         if(REPL.BLE_DEVICE != undefined){
             message += "<br>You will need to connect your XRP with a USB cable in order to update MicroPython";
-            await alertMessage(message);
+            showBottomNotification(message);
             return;
         }
         message += "<br>Would you like to update now? If so, click OK to proceed with the update."
@@ -791,6 +818,15 @@ function registerShell(_container, state){
 
 
     };
+}
+
+// Competition Mode module
+var COMP_CONTAINER = undefined;
+var COMP_STACK_ITEM = undefined;
+
+function registerCompetition(_container, state) {
+    // This function is not actually called in the new approach
+    // Kept for compatibility but not used
 }
 
 // Editor module
@@ -1212,6 +1248,52 @@ async function alertMessage(message){
 }
 window.alertMessage = alertMessage;
 
+function plainTextFromHtml(html) {
+    const tmp = document.createElement("div");
+    tmp.innerHTML = html || "";
+    return (tmp.textContent || tmp.innerText || "").replace(/\s+/g, " ").trim();
+}
+
+function showBottomNotification(message) {
+    const bar = document.getElementById("IDBottomNoticeBar");
+    const text = document.getElementById("IDBottomNoticeText");
+    if (!bar || !text) {
+        return;
+    }
+    text.textContent = plainTextFromHtml(message);
+    bar.dataset.fullMessage = message || "";
+    bar.style.display = "flex";
+}
+window.showBottomNotification = showBottomNotification;
+
+function hideBottomNotification() {
+    const bar = document.getElementById("IDBottomNoticeBar");
+    if (bar) {
+        bar.style.display = "none";
+    }
+}
+window.hideBottomNotification = hideBottomNotification;
+
+const bottomNoticeBar = document.getElementById("IDBottomNoticeBar");
+const bottomNoticeClose = document.getElementById("IDBottomNoticeClose");
+if (bottomNoticeBar) {
+    bottomNoticeBar.addEventListener("click", async (event) => {
+        if (event.target && event.target.id === "IDBottomNoticeClose") {
+            return;
+        }
+        const fullMessage = bottomNoticeBar.dataset.fullMessage || "";
+        if (fullMessage !== "") {
+            await alertMessage(fullMessage);
+        }
+    });
+}
+if (bottomNoticeClose) {
+    bottomNoticeClose.addEventListener("click", (event) => {
+        event.stopPropagation();
+        hideBottomNotification();
+    });
+}
+
 var CONFIRM  = false;
 
 async function confirmMessage(message){
@@ -1308,3 +1390,582 @@ async function sleep(tenms){
     }
 }
 window.sleep = sleep;
+
+
+// ── Competition Mode ──────────────────────────────────────────────────────────
+
+const COMP_PROGRAM_KEY = "compProgramPath";
+const COMP_SELECTED_MODE_KEY = "compSelectedMode";
+const COMP_JOY_INDEX_KEY = "compJoystickIndex";
+const COMP_MODE_PACKET_PREFIX = "\x1e";
+let compSelectedMode = "teleop";
+let compJoyIntervalId = null;
+
+function compPopulateJoystickSelect() {
+    const selectEl = document.getElementById("IDCompJoySelect");
+    if (!selectEl) return;
+
+    const pads = navigator.getGamepads ? navigator.getGamepads() : [];
+    const options = [];
+
+    options.push({ value: "-1", label: "Keyboard mapping only" });
+
+    for (let i = 0; i < pads.length; i++) {
+        const pad = pads[i];
+        if (!pad) continue;
+        const name = (pad.id || "Unknown gamepad").slice(0, 96);
+        options.push({ value: String(i), label: "Gamepad " + i + " - " + name });
+    }
+
+    const prevValue = selectEl.value;
+    selectEl.innerHTML = "";
+
+    options.forEach((opt) => {
+        const el = document.createElement("option");
+        el.value = opt.value;
+        el.textContent = opt.label;
+        selectEl.appendChild(el);
+    });
+
+    const savedJoyIndex = localStorage.getItem(COMP_JOY_INDEX_KEY);
+    const preferred = savedJoyIndex !== null
+        ? savedJoyIndex
+        : (typeof JOY?.controllerIndex === "number" ? String(JOY.controllerIndex) : "-1");
+    const hasPreferred = options.some(opt => opt.value === preferred);
+    const hasPrev = options.some(opt => opt.value === prevValue);
+    selectEl.value = hasPreferred ? preferred : (hasPrev ? prevValue : "-1");
+
+    if (JOY) {
+        JOY.controllerIndex = parseInt(selectEl.value, 10);
+    }
+}
+
+function compSetStatus(msg) {
+    document.getElementById("IDCompStatus").textContent = msg;
+}
+
+function compSetXrpConnected(connected) {
+    const ids = ["IDCompTeleopBTN", "IDCompAutonBTN", "IDCompStartBTN", "IDCompStopBTN", "IDCompEnableBTN", "IDCompDisableBTN"];
+    ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.disabled = !connected;
+    });
+    if (!connected) {
+        compSetStatus("XRP not connected. Connect the XRP to use Competition Mode.");
+    } else {
+        // Restore normal status if the "not connected" message was showing
+        const statusEl = document.getElementById("IDCompStatus");
+        if (statusEl && statusEl.textContent.startsWith("XRP not connected")) {
+            const modeLabel = compSelectedMode === "autonomous" ? "Autonomous" : "Teleop";
+            compSetStatus("Selected mode: " + modeLabel + ". Press START.");
+        }
+    }
+}
+
+function compOpenWorkspace() {
+    const compPanel = document.getElementById("IDCompetitionModal");
+    const layoutContainer = document.getElementById("IDLayoutContainer");
+    const editorStack = layoutContainer.querySelector('[id="EditorAndShell"]');
+    
+    // Move competition panel into the layout container if not already there
+    if (compPanel.parentElement !== layoutContainer) {
+        layoutContainer.appendChild(compPanel);
+    }
+    
+    // Style and show the competition panel
+    compPanel.style.display = 'flex';
+    compPanel.style.position = 'absolute';
+    compPanel.style.top = '0';
+    compPanel.style.left = '0';
+    compPanel.style.right = '0';
+    compPanel.style.bottom = '0';
+    compPanel.style.width = '100%';
+    compPanel.style.height = '100%';
+    compPanel.style.margin = '0';
+    compPanel.style.zIndex = '100';
+    compPanel.style.flexDirection = 'column';
+    
+    // Hide the editor/shell stacks by hiding the Golden Layout root
+    const glRoot = layoutContainer.querySelector('.lm_root');
+    if (glRoot) {
+        glRoot.style.display = 'none';
+    }
+    
+    // Disable Run button while in competition mode
+    const runBtn = document.getElementById("IDRunBTN");
+    if (runBtn) { runBtn.disabled = true; }
+
+    compSetTab("control");
+    compStartJoystickMonitor();
+    compSetXrpConnected(REPL.PORT != undefined || REPL.BLE_DEVICE != undefined);
+}
+
+function compCloseWorkspace() {
+    compStopJoystickMonitor();
+    const compPanel = document.getElementById("IDCompetitionModal");
+    const layoutContainer = document.getElementById("IDLayoutContainer");
+
+    // Re-enable Run button when leaving competition mode
+    const runBtn = document.getElementById("IDRunBTN");
+    if (runBtn) { runBtn.disabled = false; }
+
+    // Hide competition panel
+    compPanel.style.display = 'none';
+    
+    // Show the Golden Layout root again
+    const glRoot = layoutContainer.querySelector('.lm_root');
+    if (glRoot) {
+        glRoot.style.display = '';
+    }
+}
+
+function compSetTab(tab) {
+    const controlBtn = document.getElementById("IDCompTabControl");
+    const joystickBtn = document.getElementById("IDCompTabJoystick");
+    const controlPanel = document.getElementById("IDCompTabControlPanel");
+    const joystickPanel = document.getElementById("IDCompTabJoystickPanel");
+    const showJoystick = tab === "joystick";
+
+    controlBtn.classList.toggle("competition-tab-active", !showJoystick);
+    joystickBtn.classList.toggle("competition-tab-active", showJoystick);
+    controlPanel.classList.toggle("competition-tab-panel-active", !showJoystick);
+    joystickPanel.classList.toggle("competition-tab-panel-active", showJoystick);
+}
+
+function compUpdateJoystickView() {
+    const axesEl = document.getElementById("IDCompJoyAxes");
+    const sourceEl = document.getElementById("IDCompJoySource");
+    const selectEl = document.getElementById("IDCompJoySelect");
+    const buttonEls = document.querySelectorAll("#IDCompJoyButtons [data-comp-joy-index]");
+    const gamepadIconEl = document.getElementById("IDGamePad");
+
+    if (JOY && typeof JOY.updateStatus === "function") {
+        if (selectEl && selectEl.value !== "" && !Number.isNaN(parseInt(selectEl.value, 10))) {
+            JOY.controllerIndex = parseInt(selectEl.value, 10);
+        }
+        JOY.updateStatus();
+    }
+
+    if (!JOY || !JOY.joysticksArray || JOY.joysticksArray.length < 18) {
+        axesEl.textContent = "Joystick data unavailable. Open Joystick panel or connect input.";
+        if (sourceEl) sourceEl.textContent = "Input source: unavailable";
+        buttonEls.forEach(el => el.classList.remove("competition-joy-button-active"));
+        if (gamepadIconEl) gamepadIconEl.classList.remove("gamepad-pressed");
+        return;
+    }
+
+    if (sourceEl) {
+        const pads = navigator.getGamepads ? navigator.getGamepads() : [];
+        const idx = typeof JOY.controllerIndex === "number" ? JOY.controllerIndex : -1;
+        const pad = idx >= 0 && pads && pads.length > idx ? pads[idx] : null;
+        if (pad) {
+            const padName = (pad.id || "Unknown gamepad").slice(0, 72);
+            sourceEl.textContent = "Input source: Gamepad " + idx + " - " + padName;
+        } else if (JOY.listening) {
+            sourceEl.textContent = "Input source: Keyboard mapping (WASD / IJKL + 1-0)";
+        } else {
+            sourceEl.textContent = "Input source: none detected";
+        }
+    }
+
+    const values = JOY.joysticksArray;
+    axesEl.textContent = "X1: " + values[0].toFixed(2) + ", Y1: " + values[1].toFixed(2) + ", X2: " + values[2].toFixed(2) + ", Y2: " + values[3].toFixed(2);
+
+    // Buttons are mapped from index 4 through 17 in joysticksArray.
+    const anyButtonPressed = values.slice(4, 18).some(v => Number(v) > 0.5);
+    if (gamepadIconEl) {
+        gamepadIconEl.classList.toggle("gamepad-pressed", anyButtonPressed);
+    }
+
+    buttonEls.forEach(el => {
+        const idx = parseInt(el.getAttribute("data-comp-joy-index"), 10);
+        const pressed = idx >= 0 && idx < values.length && Number(values[idx]) > 0.5;
+        el.classList.toggle("competition-joy-button-active", pressed);
+    });
+}
+
+function compStartJoystickMonitor() {
+    compStopJoystickMonitor();
+    if (JOY) {
+        JOY.listening = true;
+    }
+    compPopulateJoystickSelect();
+    compUpdateJoystickView();
+    compJoyIntervalId = setInterval(compUpdateJoystickView, 80);
+}
+
+function compStopJoystickMonitor() {
+    if (compJoyIntervalId !== null) {
+        clearInterval(compJoyIntervalId);
+        compJoyIntervalId = null;
+    }
+    const gamepadIconEl = document.getElementById("IDGamePad");
+    if (gamepadIconEl) {
+        gamepadIconEl.classList.remove("gamepad-pressed");
+    }
+}
+
+function compSetRunning(running) {
+    document.getElementById("IDCompStartBTN").disabled = running;
+}
+
+function compSetSelectedMode(mode, updateStatus = true) {
+    compSelectedMode = mode === "autonomous" ? "autonomous" : "teleop";
+    localStorage.setItem(COMP_SELECTED_MODE_KEY, compSelectedMode);
+
+    const teleopBtn = document.getElementById("IDCompTeleopBTN");
+    const autonBtn = document.getElementById("IDCompAutonBTN");
+
+    if (compSelectedMode === "teleop") {
+        teleopBtn.classList.add("competition-mode-selected");
+        autonBtn.classList.remove("competition-mode-selected");
+    } else {
+        teleopBtn.classList.remove("competition-mode-selected");
+        autonBtn.classList.add("competition-mode-selected");
+    }
+
+    if (updateStatus && !REPL.RUN_BUSY) {
+        const modeLabel = compSelectedMode === "teleop" ? "Teleop" : "Autonomous";
+        compSetStatus("Selected mode: " + modeLabel + ". Press START.");
+    }
+}
+
+function compNormalizePath(path) {
+    var p = (path || "").trim();
+    if (p !== "" && !p.startsWith("/")) {
+        p = "/" + p;
+    }
+    return p;
+}
+
+function compEscapePyString(str) {
+    return str.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+}
+
+function compResolveRunPath(path) {
+    const normalized = compNormalizePath(path);
+    // Keep selected path as-is so .blocks files can run directly in competition mode.
+    return normalized;
+}
+
+async function compSendLiveMode(mode) {
+    if (REPL.DISCONNECT === true || !REPL.RUN_BUSY) {
+        return;
+    }
+    let modeValue;
+    if (mode === "autonomous") modeValue = "1";
+    else if (mode === "disable") modeValue = "2";
+    else if (mode === "enable") modeValue = "3";
+    else modeValue = "0"; // teleop
+    const packet = COMP_MODE_PACKET_PREFIX + modeValue;
+    // Send 3 times with 50ms gaps to ensure delivery despite timing races
+    for (let i = 0; i < 3; i++) {
+        if (REPL.DISCONNECT === true || !REPL.RUN_BUSY) break;
+        await REPL.writeToDevice(packet);
+        await window.sleep(50);
+    }
+}
+
+function compBuildRunnerLines(path, mode) {
+    const pathNoSlash = path.startsWith("/") ? path.slice(1) : path;
+    const fnName = mode === "teleop" ? "teleop" : "autonomous";
+    const modeValue = mode === "teleop" ? "0" : "1";
+    const pathEsc = compEscapePyString(path);
+    const pathNoSlashEsc = compEscapePyString(pathNoSlash);
+
+    return "import gc\n" +
+           "from XRPLib.competition import competition_init, COMP_MODE_TELEOP, COMP_MODE_AUTONOMOUS\n" +
+           "competition_init(" + modeValue + ")\n" +
+           "program_path = '" + pathEsc + "'\n" +
+           "mode_fn = '" + fnName + "'\n" +
+           "try:\n" +
+           "   with open(program_path, mode='r') as exfile:\n" +
+           "      code = exfile.read()\n" +
+           "   if program_path.lower().endswith('.blocks'):\n" +
+           "      marker = '##XRPBLOCKS '\n" +
+           "      marker_index = code.find(marker)\n" +
+           "      if marker_index != -1:\n" +
+           "         code = code[:marker_index].rstrip()\n" +
+           "   ns = {}\n" +
+           "   exec(compile(code, '" + pathNoSlashEsc + "', 'exec'), ns)\n" +
+           "   if 'competition_main' in ns:\n" +
+           "      ns['competition_main']()\n" +
+           "   elif 'main' in ns:\n" +
+           "      ns['main']()\n" +
+           "   elif mode_fn in ns:\n" +
+           "      ns[mode_fn]()\n" +
+           "except Exception as e:\n" +
+           "   import sys\n" +
+           "   sys.print_exception(e)\n" +
+           "finally:\n" +
+           "   gc.collect()\n";
+}
+
+async function runCompetitionMode(mode) {
+    var selectedPath = compNormalizePath(document.getElementById("IDCompProgramPath").value);
+
+    if (!selectedPath || selectedPath.trim() === "") {
+        await window.alertMessage("Please choose a competition program file first.");
+        return;
+    }
+    document.getElementById("IDCompProgramPath").value = selectedPath;
+    localStorage.setItem(COMP_PROGRAM_KEY, selectedPath);
+
+    var path = compResolveRunPath(selectedPath);
+
+    if (REPL.DISCONNECT === true) {
+        await window.alertMessage("No XRP is connected. Connect the XRP first.");
+        return;
+    }
+
+    if (REPL.RUN_BUSY) {
+        compSetStatus("Program is already running. Use STOP before START, or change mode selection for your running logic.");
+        return;
+    }
+
+    var count = 0;
+    while (REPL.BUSY && REPL.RUN_BUSY == false && count < 20) {
+        await window.sleep(10);
+        count += 1;
+    }
+    if (REPL.BUSY) {
+        await window.alertMessage("A program is already running. Press STOP first.");
+        return;
+    }
+
+    const modeLabel = mode === "teleop" ? "Teleop" : "Autonomous";
+
+    compSetRunning(true);
+    compSetStatus("Running " + modeLabel + " from " + path + "...");
+    document.getElementById('IDRunBTN').style.display = "none";
+    document.getElementById('IDStopBTN').style.display = "block";
+    addFSOverlay();
+    disableMenuItems();
+
+    var lines = compBuildRunnerLines(path, mode);
+    if (ATERM) ATERM.TERM.scrollToBottom();
+    await REPL.executeLines(lines);
+
+    removeFSOverlay();
+    enableMenuItems();
+    document.getElementById("IDRunBTN").disabled = false;
+    document.getElementById('IDRunBTN').style.display = "block";
+    document.getElementById('IDStopBTN').style.display = "none";
+
+    if (REPL.BLE_DEVICE == undefined) {
+        UIkit.modal(document.getElementById("IDWaitingParent")).hide();
+    }
+
+    compSetRunning(false);
+
+    if (REPL.RUN_ERROR && REPL.RUN_ERROR.includes("[Errno 2] ENOENT", 0)) {
+        compSetStatus("File not found: " + path + ". Upload it to the XRP first.");
+        await window.alertMessage("The file <b>" + path + "</b> was not found on the XRP.<br>Upload it first using File → Upload to XRP.");
+    } else {
+        compSetStatus("Finished " + modeLabel + " from " + path);
+    }
+}
+
+// Open competition modal and restore saved path
+document.getElementById("IDCompetitionBTN").onclick = () => {
+    var savedPath = localStorage.getItem(COMP_PROGRAM_KEY) || "";
+    var savedMode = localStorage.getItem(COMP_SELECTED_MODE_KEY) || "teleop";
+    document.getElementById("IDCompProgramPath").value = savedPath;
+    compSetSelectedMode(savedMode, false);
+    compSetStatus("Selected mode: " + (compSelectedMode === "teleop" ? "Teleop" : "Autonomous") + ". Press START.");
+    compOpenWorkspace();
+};
+
+// Clicking the gamepad icon opens competition mode directly on the joystick tab
+document.getElementById("IDGamePad").onclick = () => {
+    var savedPath = localStorage.getItem(COMP_PROGRAM_KEY) || "";
+    var savedMode = localStorage.getItem(COMP_SELECTED_MODE_KEY) || "teleop";
+    document.getElementById("IDCompProgramPath").value = savedPath;
+    compSetSelectedMode(savedMode, false);
+    compSetStatus("Selected mode: " + (compSelectedMode === "teleop" ? "Teleop" : "Autonomous") + ". Press START.");
+    compOpenWorkspace();
+    compSetTab("joystick");
+    compPopulateJoystickSelect();
+    compUpdateJoystickView();
+};
+
+document.getElementById("IDCompCloseBTN").onclick = () => {
+    compCloseWorkspace();
+};
+
+document.getElementById("IDCompTabControl").onclick = () => {
+    compSetTab("control");
+};
+
+document.getElementById("IDCompTabJoystick").onclick = () => {
+    compSetTab("joystick");
+    compPopulateJoystickSelect();
+    compUpdateJoystickView();
+};
+
+document.getElementById("IDCompJoySelect").addEventListener("change", () => {
+    const selectEl = document.getElementById("IDCompJoySelect");
+    if (JOY && selectEl) {
+        const idx = parseInt(selectEl.value, 10);
+        JOY.controllerIndex = Number.isNaN(idx) ? -1 : idx;
+        localStorage.setItem(COMP_JOY_INDEX_KEY, String(JOY.controllerIndex));
+    }
+    compUpdateJoystickView();
+});
+
+window.addEventListener("gamepadconnected", () => {
+    compPopulateJoystickSelect();
+    compUpdateJoystickView();
+});
+
+window.addEventListener("gamepaddisconnected", () => {
+    compPopulateJoystickSelect();
+    compUpdateJoystickView();
+});
+
+// Persist path changes as the user types
+document.getElementById("IDCompProgramPath").addEventListener("input", (e) => {
+    localStorage.setItem(COMP_PROGRAM_KEY, compNormalizePath(e.target.value));
+});
+
+// Teleop button
+document.getElementById("IDCompTeleopBTN").onclick = async () => {
+    compSetSelectedMode("teleop");
+    if (REPL.RUN_BUSY) {
+        await compSendLiveMode("teleop");
+        compSetStatus("Live mode switch sent: Teleop.");
+    }
+};
+
+// Autonomous button
+document.getElementById("IDCompAutonBTN").onclick = async () => {
+    compSetSelectedMode("autonomous");
+    if (REPL.RUN_BUSY) {
+        await compSendLiveMode("autonomous");
+        compSetStatus("Live mode switch sent: Autonomous.");
+    }
+};
+
+// Start button
+document.getElementById("IDCompStartBTN").onclick = async () => {
+    await runCompetitionMode(compSelectedMode);
+};
+
+// Enable button
+document.getElementById("IDCompEnableBTN").onclick = async () => {
+    if (REPL.RUN_BUSY) {
+        await compSendLiveMode("enable");
+        compSetStatus("Robot enabled.");
+    } else {
+        compSetStatus("Program not running — start first.");
+    }
+};
+
+// Disable button
+document.getElementById("IDCompDisableBTN").onclick = async () => {
+    if (REPL.RUN_BUSY) {
+        await compSendLiveMode("disable");
+        compSetStatus("Robot disabled.");
+    } else {
+        compSetStatus("Program not running — start first.");
+    }
+};
+
+// Stop button
+document.getElementById("IDCompStopBTN").onclick = async () => {
+    if (REPL.DISCONNECT === true) {
+        await window.alertMessage("No XRP is connected.");
+        return;
+    }
+    compSetStatus("Stopping…");
+    document.getElementById('IDRunBTN').style.display = "none";
+    await REPL.stop();
+    compSetStatus("Stopped.");
+    compSetRunning(false);
+};
+
+// ── Competition Mode: File Browser ──────────────────────────────────────────
+
+// Recursively walk REPL.DIR_STRUCT to collect all file paths.
+// dirData is the object under a directory key (numeric keys = entries, string keys = subdir objects).
+function compExtractFiles(dirData, currentPath) {
+    const files = [];
+    if (!dirData) return files;
+    for (const key of Object.keys(dirData)) {
+        if (isNaN(key)) continue;
+        const entry = dirData[key];
+        if (entry.F) {
+            files.push(currentPath + "/" + entry.F);
+        } else if (entry.D) {
+            const subFiles = compExtractFiles(dirData[entry.D], currentPath + "/" + entry.D);
+            files.push(...subFiles);
+        }
+    }
+    return files;
+}
+
+function compBuildFileList(listDiv, inputEl) {
+    listDiv.innerHTML = "";
+
+    if (REPL.DISCONNECT === true || !REPL.DIR_STRUCT) {
+        const msg = document.createElement("div");
+        msg.className = "competition-file-list-empty";
+        msg.textContent = "Connect XRP to browse files.";
+        listDiv.appendChild(msg);
+        listDiv.style.display = "block";
+        return;
+    }
+
+    const allFiles = compExtractFiles(REPL.DIR_STRUCT[""], "");
+    // Show Competition-relevant source files first.
+    const compSourceFiles = allFiles.filter(f => {
+        const lower = f.toLowerCase();
+        return lower.endsWith(".py") || lower.endsWith(".blocks");
+    });
+    const display = compSourceFiles.length > 0 ? compSourceFiles : allFiles;
+
+    if (display.length === 0) {
+        const msg = document.createElement("div");
+        msg.className = "competition-file-list-empty";
+        msg.textContent = "No files found on XRP.";
+        listDiv.appendChild(msg);
+    } else {
+        display.sort();
+        display.forEach(path => {
+            const item = document.createElement("div");
+            item.className = "competition-file-list-item";
+            item.textContent = path;
+            item.title = path;
+            item.onclick = () => {
+                inputEl.value = path;
+                inputEl.dispatchEvent(new Event("input"));
+                listDiv.style.display = "none";
+            };
+            listDiv.appendChild(item);
+        });
+    }
+    listDiv.style.display = "block";
+}
+
+function compToggleBrowse(listDiv, inputEl) {
+    if (listDiv.style.display === "none") {
+        compBuildFileList(listDiv, inputEl);
+    } else {
+        listDiv.style.display = "none";
+    }
+}
+
+document.getElementById("IDCompBrowse").onclick = () => {
+    compToggleBrowse(
+        document.getElementById("IDCompFileList"),
+        document.getElementById("IDCompProgramPath")
+    );
+};
+
+// Close any open file lists when clicking outside them
+document.addEventListener("click", (e) => {
+    const fileList = document.getElementById("IDCompFileList");
+    if (!e.target.closest("#IDCompBrowse") && !e.target.closest("#IDCompFileList")) {
+        if (fileList) fileList.style.display = "none";
+    }
+});

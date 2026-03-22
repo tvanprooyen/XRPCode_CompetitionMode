@@ -359,6 +359,127 @@ Blockly.Python['xrp_gp_button_pressed'] = function (block) {
   return [code , Blockly.Python.ORDER_NONE];
 };
 
+//Competition
+Blockly.Python['xrp_comp_is_autonomous'] = function (block) {
+  PY.definitions_['import_competition'] = 'from XRPLib.competition import competition_is_autonomous, competition_is_enabled, competition_is_disabled, competition_get_mode, competition_set_mode, competition_set_enabled, competition_set_disabled, competition_init, COMP_MODE_TELEOP, COMP_MODE_AUTONOMOUS, COMP_MODE_DISABLED, COMP_MODE_ENABLED';
+  var code = `competition_is_autonomous()`;
+  return [code, Blockly.Python.ORDER_NONE];
+};
+
+Blockly.Python['xrp_comp_is_enabled'] = function (block) {
+  PY.definitions_['import_competition'] = 'from XRPLib.competition import competition_is_autonomous, competition_is_enabled, competition_is_disabled, competition_get_mode, competition_set_mode, competition_set_enabled, competition_set_disabled, competition_init, COMP_MODE_TELEOP, COMP_MODE_AUTONOMOUS, COMP_MODE_DISABLED, COMP_MODE_ENABLED';
+  var code = `competition_is_enabled()`;
+  return [code, Blockly.Python.ORDER_NONE];
+};
+
+Blockly.Python['xrp_comp_is_disabled'] = function (block) {
+  PY.definitions_['import_competition'] = 'from XRPLib.competition import competition_is_autonomous, competition_is_enabled, competition_is_disabled, competition_get_mode, competition_set_mode, competition_set_enabled, competition_set_disabled, competition_init, COMP_MODE_TELEOP, COMP_MODE_AUTONOMOUS, COMP_MODE_DISABLED, COMP_MODE_ENABLED';
+  var code = `competition_is_disabled()`;
+  return [code, Blockly.Python.ORDER_NONE];
+};
+
+Blockly.Python['xrp_comp_get_mode'] = function (block) {
+  PY.definitions_['import_competition'] = 'from XRPLib.competition import competition_is_autonomous, competition_is_enabled, competition_is_disabled, competition_get_mode, competition_set_mode, competition_set_enabled, competition_set_disabled, competition_init, COMP_MODE_TELEOP, COMP_MODE_AUTONOMOUS, COMP_MODE_DISABLED, COMP_MODE_ENABLED';
+  var code = `competition_get_mode()`;
+  return [code, Blockly.Python.ORDER_NONE];
+};
+
+Blockly.Python['xrp_comp_mode_const'] = function (block) {
+  PY.definitions_['import_competition'] = 'from XRPLib.competition import competition_is_autonomous, competition_is_enabled, competition_is_disabled, competition_get_mode, competition_set_mode, competition_set_enabled, competition_set_disabled, competition_init, COMP_MODE_TELEOP, COMP_MODE_AUTONOMOUS, COMP_MODE_DISABLED, COMP_MODE_ENABLED';
+  var modeConst = block.getFieldValue("MODE_CONST");
+  return [modeConst, Blockly.Python.ORDER_NONE];
+};
+
+Blockly.Python['xrp_comp_init'] = function (block) {
+  PY.definitions_['import_competition'] = 'from XRPLib.competition import competition_is_autonomous, competition_is_enabled, competition_is_disabled, competition_get_mode, competition_set_mode, competition_set_enabled, competition_set_disabled, competition_init, COMP_MODE_TELEOP, COMP_MODE_AUTONOMOUS, COMP_MODE_DISABLED, COMP_MODE_ENABLED';
+  var initMode = block.getFieldValue("INIT_MODE");
+  var code = `competition_init(${initMode})\n`;
+  return code;
+};
+
+Blockly.Python['xrp_comp_set_mode'] = function (block) {
+  PY.definitions_['import_competition'] = 'from XRPLib.competition import competition_is_autonomous, competition_is_enabled, competition_is_disabled, competition_get_mode, competition_set_mode, competition_set_enabled, competition_set_disabled, competition_init, COMP_MODE_TELEOP, COMP_MODE_AUTONOMOUS, COMP_MODE_DISABLED, COMP_MODE_ENABLED';
+  var modeValue = block.getFieldValue("SET_MODE");
+  var code = `competition_set_mode(${modeValue})\n`;
+  return code;
+};
+
+Blockly.Python['xrp_comp_set_enabled'] = function (block) {
+  PY.definitions_['import_competition'] = 'from XRPLib.competition import competition_is_autonomous, competition_is_enabled, competition_is_disabled, competition_get_mode, competition_set_mode, competition_set_enabled, competition_set_disabled, competition_init, COMP_MODE_TELEOP, COMP_MODE_AUTONOMOUS, COMP_MODE_DISABLED, COMP_MODE_ENABLED';
+  var enabledState = block.getFieldValue("ENABLED_STATE");
+  var code = `competition_set_enabled(${enabledState})\n`;
+  return code;
+};
+
+Blockly.Python['xrp_comp_disable'] = function (block) {
+  PY.definitions_['import_competition'] = 'from XRPLib.competition import competition_is_autonomous, competition_is_enabled, competition_is_disabled, competition_get_mode, competition_set_mode, competition_set_enabled, competition_set_disabled, competition_init, COMP_MODE_TELEOP, COMP_MODE_AUTONOMOUS, COMP_MODE_DISABLED, COMP_MODE_ENABLED';
+  var code = `competition_set_disabled()\n`;
+  return code;
+};
+
+// Timer
+Blockly.Python['xrp_timer_create'] = function (block) {
+  PY.definitions_['import_timer'] = 'from XRPLib.timer import Timer';
+  var timerName = (block.getFieldValue("TIMER_NAME") || "timer").replace(/[^A-Za-z0-9_]/g, "_");
+  if (/^[0-9]/.test(timerName)) {
+    timerName = '_' + timerName;
+  }
+  var code = `${timerName} = Timer()\n`;
+  return code;
+};
+
+Blockly.Python['xrp_timer_reset'] = function (block) {
+  PY.definitions_['import_timer'] = 'from XRPLib.timer import Timer';
+  var timerName = (block.getFieldValue("TIMER_NAME") || "timer").replace(/[^A-Za-z0-9_]/g, "_");
+  if (/^[0-9]/.test(timerName)) {
+    timerName = '_' + timerName;
+  }
+  var code = `${timerName}.reset()\n`;
+  return code;
+};
+
+Blockly.Python['xrp_timer_elapsed'] = function (block) {
+  PY.definitions_['import_timer'] = 'from XRPLib.timer import Timer';
+  var timerName = (block.getFieldValue("TIMER_NAME") || "timer").replace(/[^A-Za-z0-9_]/g, "_");
+  if (/^[0-9]/.test(timerName)) {
+    timerName = '_' + timerName;
+  }
+  var code = `${timerName}.elapsed()`;
+  return [code, Blockly.Python.ORDER_NONE];
+};
+
+Blockly.Python['xrp_timer_elapsed_ms'] = function (block) {
+  PY.definitions_['import_timer'] = 'from XRPLib.timer import Timer';
+  var timerName = (block.getFieldValue("TIMER_NAME") || "timer").replace(/[^A-Za-z0-9_]/g, "_");
+  if (/^[0-9]/.test(timerName)) {
+    timerName = '_' + timerName;
+  }
+  var code = `${timerName}.elapsed_ms()`;
+  return [code, Blockly.Python.ORDER_NONE];
+};
+
+Blockly.Python['xrp_timer_has_elapsed'] = function (block) {
+  PY.definitions_['import_timer'] = 'from XRPLib.timer import Timer';
+  var timerName = (block.getFieldValue("TIMER_NAME") || "timer").replace(/[^A-Za-z0-9_]/g, "_");
+  if (/^[0-9]/.test(timerName)) {
+    timerName = '_' + timerName;
+  }
+  var seconds = Blockly.Python.valueToCode(block, 'SECONDS', Blockly.Python.ORDER_ATOMIC) || '0';
+  var code = `${timerName}.has_elapsed(${seconds})`;
+  return [code, Blockly.Python.ORDER_NONE];
+};
+
+Blockly.Python['xrp_timer_has_elapsed_ms'] = function (block) {
+  PY.definitions_['import_timer'] = 'from XRPLib.timer import Timer';
+  var timerName = (block.getFieldValue("TIMER_NAME") || "timer").replace(/[^A-Za-z0-9_]/g, "_");
+  if (/^[0-9]/.test(timerName)) {
+    timerName = '_' + timerName;
+  }
+  var milliseconds = Blockly.Python.valueToCode(block, 'MILLISECONDS', Blockly.Python.ORDER_ATOMIC) || '0';
+  var code = `${timerName}.has_elapsed_ms(${milliseconds})`;
+  return [code, Blockly.Python.ORDER_NONE];
+};
+
 //Logic
 Blockly.Python['xrp_sleep'] = function (block) {
   PY.definitions_['import_time'] = 'import time';

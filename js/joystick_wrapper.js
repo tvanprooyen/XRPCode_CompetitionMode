@@ -73,7 +73,7 @@ class Joystick{
     sendPacket = false;
     sendingPacket = false;
 
-    controllerIndex = 0;
+    controllerIndex = -1;
 
     // Define common objects used within this class right on object init
     // and open a terminal with addon to fit to parent HTML container
@@ -359,7 +359,8 @@ class Joystick{
 
         window.addEventListener("gamepadconnected", (event) => {
             this.controllerIndex = event.gamepad.index;
-            document.getElementById('IDGamePad').style.display = "block";
+            const gpBtn = document.getElementById('IDGamePad');
+            gpBtn.style.display = "inline-flex";
         });
 
         window.addEventListener("gamepaddisconnected", (event) => {

@@ -8,6 +8,7 @@ from .imu import IMU
 from .reflectance import Reflectance
 from .servo import Servo
 from .webserver import Webserver
+from .competition import *
 from machine import Pin
 
 """

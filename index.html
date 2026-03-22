@@ -22,6 +22,7 @@
         <link rel="stylesheet" href="css/dark/changelog-dark.css?version=1.2.2">
 
         <link rel="stylesheet" href="js/treejs/treejs.css?version=1.2.2" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
 
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -220,9 +221,18 @@
                                     </button></li>
                                 </ul>
                             </div>
+                            <!-- COMPETITION MODE Button-->
+                            <button
+                                id="IDCompetitionBTN"
+                                class="uk-button-xmenu uk-button-primary uk-height-1-1 uk-text-small uk-text-nowrap view-options competition-mode-btn"
+                                title="Open Competition Mode — run Teleop or Autonomous and stop the robot">
+                                Competition Mode
+                            </button>
                         </div>
 
-                        <img id="IDGamePad" style="padding-left: 20%; display: none;"  src="images/gamepad.png" alt="gamepad icon" title="gamepad connected" uk-img>
+                        <button id="IDGamePad" class="header-gamepad-btn" type="button" title="Click to open joystick settings in Competition Mode" aria-label="Open joystick settings in Competition Mode">
+                            <i class="fa-solid fa-gamepad" aria-hidden="true"></i>
+                        </button>
 
                     </div>
 
@@ -234,7 +244,6 @@
 
             <div id="IDLayoutContainer" class="layout_container"></div>
         </div>
-
         <div id="IDProgressBarParent" uk-modal bg-close="false">
             <div class="uk-modal-dialog uk-modal-body progress-bar-parent">
                 <h4 id="IdProgress_TitleText"></h4>
@@ -282,6 +291,106 @@
 
 
         <!-- https://stackoverflow.com/questions/61286599/how-to-force-browser-to-load-new-content -->
+
+        <!-- Competition Mode Workspace Panel -->
+        <div id="IDCompetitionModal" class="competition-workspace" style="display:none;">
+            <div class="uk-modal-dialog competition-modal-dialog">
+                <button id="IDCompCloseBTN" class="competition-close-btn" type="button" title="Close competition mode">
+                    <span uk-icon="icon: close"></span>
+                    <span>Close</span>
+                </button>
+                <div class="uk-modal-header competition-modal-header">
+                    <h2 class="uk-modal-title">Competition Mode</h2>
+                    <p class="competition-subtitle uk-text-muted">This mode allows users to swap between Teleop and Autonomous modes.</p>
+                </div>
+                <div class="uk-modal-body">
+                    <div class="competition-tabs">
+                        <button id="IDCompTabControl" class="competition-tab-btn competition-tab-active" type="button">
+                            <span uk-icon="icon: settings"></span>
+                            <span>Control</span>
+                        </button>
+                        <button id="IDCompTabJoystick" class="competition-tab-btn" type="button">
+                            <span uk-icon="icon: thumbnails"></span>
+                            <span>Joystick</span>
+                        </button>
+                    </div>
+                    <div id="IDCompTabControlPanel" class="competition-tab-panel competition-tab-panel-active">
+                        <div class="competition-file-row">
+                            <div class="competition-file-group">
+                                <label class="competition-label" for="IDCompProgramPath">Competition Program</label>
+                                <div class="competition-path-row">
+                                    <input id="IDCompProgramPath" class="uk-input competition-path-input" type="text" placeholder="/competition.py or /competition.blocks" spellcheck="false">
+                                    <button id="IDCompBrowse" class="uk-button competition-browse-btn" title="Browse files on XRP">
+                                        <span uk-icon="icon: folder"></span>
+                                        <span>Browse</span>
+                                    </button>
+                                </div>
+                                <div id="IDCompFileList" class="competition-file-list" style="display:none"></div>
+                            </div>
+                        </div>
+                        <div class="competition-buttons">
+                            <button id="IDCompTeleopBTN" class="uk-button competition-action-btn competition-teleop-btn" title="Select Teleop mode">
+                                <span uk-icon="icon: user"></span>
+                                <span class="competition-btn-label">TELEOP MODE</span>
+                            </button>
+                            <button id="IDCompAutonBTN" class="uk-button competition-action-btn competition-auton-btn" title="Select Autonomous mode">
+                                <span uk-icon="icon: bolt"></span>
+                                <span class="competition-btn-label">AUTO MODE</span>
+                            </button>
+                            <button id="IDCompStartBTN" class="uk-button competition-action-btn competition-start-btn" title="Start selected mode">
+                                <span uk-icon="icon: play"></span>
+                                <span class="competition-btn-label">START</span>
+                            </button>
+                            <button id="IDCompStopBTN" class="uk-button competition-action-btn competition-stop-btn" title="Stop robot">
+                                <span uk-icon="icon: stop"></span>
+                                <span class="competition-btn-label">STOP</span>
+                            </button>
+                        </div>
+                        <div class="competition-buttons competition-enable-row">
+                            <button id="IDCompEnableBTN" class="uk-button competition-action-btn competition-enable-btn" title="Enable robot">
+                                <span uk-icon="icon: check"></span>
+                                <span class="competition-btn-label">ENABLE</span>
+                            </button>
+                            <button id="IDCompDisableBTN" class="uk-button competition-action-btn competition-disable-btn" title="Disable robot">
+                                <span uk-icon="icon: ban"></span>
+                                <span class="competition-btn-label">DISABLE</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="IDCompTabJoystickPanel" class="competition-tab-panel">
+                        <div class="competition-joy-select-row">
+                            <label class="competition-label" for="IDCompJoySelect">Joystick Device</label>
+                            <select id="IDCompJoySelect" class="uk-select competition-joy-select"></select>
+                        </div>
+                        <div class="competition-joy-grid" id="IDCompJoyButtons">
+                            <div class="competition-joy-button" data-comp-joy-index="4">A</div>
+                            <div class="competition-joy-button" data-comp-joy-index="5">B</div>
+                            <div class="competition-joy-button" data-comp-joy-index="6">X</div>
+                            <div class="competition-joy-button" data-comp-joy-index="7">Y</div>
+                            <div class="competition-joy-button" data-comp-joy-index="8">LB</div>
+                            <div class="competition-joy-button" data-comp-joy-index="9">RB</div>
+                            <div class="competition-joy-button" data-comp-joy-index="10">LT</div>
+                            <div class="competition-joy-button" data-comp-joy-index="11">RT</div>
+                            <div class="competition-joy-button" data-comp-joy-index="12">BACK</div>
+                            <div class="competition-joy-button" data-comp-joy-index="13">START</div>
+                            <div class="competition-joy-button" data-comp-joy-index="14">D-UP</div>
+                            <div class="competition-joy-button" data-comp-joy-index="15">D-DOWN</div>
+                            <div class="competition-joy-button" data-comp-joy-index="16">D-LEFT</div>
+                            <div class="competition-joy-button" data-comp-joy-index="17">D-RIGHT</div>
+                        </div>
+                        <div class="competition-joy-source" id="IDCompJoySource">Input source: unknown</div>
+                        <div class="competition-joy-axes" id="IDCompJoyAxes">X1: 0.00, Y1: 0.00, X2: 0.00, Y2: 0.00</div>
+                        <div class="competition-joy-note">Live input from keyboard/gamepad mapping used by XRP joystick packets.</div>
+                    </div>
+                    <div id="IDCompStatus" class="competition-status"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="IDBottomNoticeBar" class="bottom-notice-bar" style="display:none;" role="status" aria-live="polite" title="Click to view details">
+            <span id="IDBottomNoticeText" class="bottom-notice-text"></span>
+            <button id="IDBottomNoticeClose" class="bottom-notice-close" type="button" title="Dismiss notification" aria-label="Dismiss notification">&times;</button>
+        </div>
 
         <script src="uikit-3.16.22/js/uikit.min.js"></script>
         <script src="uikit-3.16.22/js/uikit-icons.min.js"></script>

@@ -1,3 +1,22 @@
+# Version 1.2.3
+
+Release date: March 22, 2026
+
+## Competition Mode updates
+* Added a Competition Mode workspace panel with Control and Joystick views.
+* Competition action buttons (TELEOP, AUTO, START, STOP, ENABLE, DISABLE) are now disabled whenever an XRP is not connected.
+* Opening Competition Mode now disables the normal RUN button to prevent conflicting run flows, and restores it when Competition Mode is closed.
+* Improved Competition Mode status handling so the "XRP not connected" message correctly returns to normal status text after reconnecting.
+
+## Joystick/gamepad UX
+* Added a header gamepad icon button that opens joystick settings while in Competition Mode.
+* Updated the header gamepad icon to use Font Awesome for consistent rendering.
+* The header gamepad icon now turns green while any mapped gamepad button is pressed.
+
+## Notifications
+* Added a bottom notification bar for important notices.
+* BLE MicroPython update notices now appear in the bottom bar instead of a blocking popup, and can be clicked for full details.
+
 # Version 1.2.2
 
 ## Gamepad support

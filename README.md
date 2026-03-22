@@ -13,4 +13,16 @@ Features:
 * Easy connect and disconnect of XRP
     * Automatically connects XRP if it has connected to the page before
 
+Recent updates (v1.2.3):
+* Added Competition Mode workspace with Control and Joystick tabs
+* Competition action buttons are automatically disabled when XRP is not connected
+* RUN button is disabled while Competition Mode is open to prevent conflicting runs
+* Added bottom notification bar for important notices (including BLE MicroPython update notices)
+* Header gamepad icon now uses Font Awesome and turns green while a mapped button is pressed
+
+Compatibility notes:
+* Project scripts are compatible with Python 3.12+
+
 Only Google Chrome and Microsoft Edge are officially supported by the WebSerial JavaScript API
+
+https://xrp.wpsrobotics.org/
